@@ -10,9 +10,9 @@ from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 
 from xplique.attributions import (Occlusion, Rise, Lime, KernelShap, SobolAttributionMethod)
-from xplique.commons.tf_operations import predictions_one_hot, batch_predictions_one_hot
-from xplique.commons.callable_operations import predictions_one_hot_callable, \
+from xplique.commons.operators_operations import predictions_operator, batch_predictions,\
     batch_predictions_one_hot_callable
+from xplique.commons.callable_operations import predictions_one_hot_callable
 
 from ..utils import generate_data, generate_model, generate_regression_model
 
@@ -165,8 +165,8 @@ def test_tf_models_tabular():
         explainers = _default_methods_tabular(model)
 
         for explainer in explainers:
-            assert explainer.inference_function is predictions_one_hot
-            assert explainer.batch_inference_function is batch_predictions_one_hot
+            assert explainer.inference_function is predictions_operator
+            assert explainer.batch_inference_function is batch_predictions
 
             explanations = explainer(inputs, targets)
 
@@ -189,12 +189,12 @@ def test_tf_models_images():
             explainers = _default_methods_images(model)
 
             for explainer in explainers:
-                assert explainer.inference_function is predictions_one_hot
-                assert explainer.batch_inference_function is batch_predictions_one_hot
+                assert explainer.inference_function is predictions_operator
+                assert explainer.batch_inference_function is batch_predictions
 
                 explanations = explainer(inputs, targets)
 
-                assert explanations.shape == (samples, *input_shape[:2])
+                assert explanations.shape == (samples, *input_shape[:2], 1)
 
 def test_callable_models_tabular():
     """
@@ -244,4 +244,4 @@ def test_callable_models_images():
 
                 explanations = explainer(inputs, targets)
 
-                assert explanations.shape == (samples, *input_shape[:2])
+                assert explanations.shape == (samples, *input_shape[:2], 1)

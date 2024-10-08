@@ -2,7 +2,8 @@
 Sobol Attribution Method explainer
 """
 
-from ...types import Callable, Union, Optional
+from ...types import Callable, Union, Optional, OperatorSignature
+from ...commons import Tasks
 from .gsa_attribution_method import GSABaseAttributionMethod
 from .sobol_estimators import SobolEstimator, JansenEstimator
 from .replicated_designs import ReplicatedSampler, TFSobolSequenceRS
@@ -33,10 +34,14 @@ class SobolAttributionMethod(GSABaseAttributionMethod):
         Estimator used to compute the total order sobol' indices, Jansen recommended. For more
         option, see the estimator module.
     perturbation_function
-        Function to call to apply the perturbation on the input. Can also be string in
-        'inpainting', 'blur'.
+        Function to call to apply the perturbation on the input. Can also be string:
+        'inpainting', 'blurring', or 'amplitude'.
     batch_size
         Batch size to use for the forwards.
+    operator
+        Function g to explain, g take 3 parameters (f, x, y) and should return a scalar,
+        with f the model, x the inputs and y the targets. If None, use the standard
+        operator g(f, x, y) = f(x)[y].
     """
 
     def __init__(
@@ -47,21 +52,31 @@ class SobolAttributionMethod(GSABaseAttributionMethod):
         sampler: Optional[ReplicatedSampler] = None,
         estimator: Optional[SobolEstimator] = None,
         perturbation_function: Optional[Union[Callable, str]] = "inpainting",
-        batch_size=256
+        batch_size=256,
+        operator: Optional[Union[Tasks, str, OperatorSignature]] = None,
     ):
 
-        assert (nb_design & (nb_design-1) == 0) and nb_design != 0,\
-            "The number of design must be a power of two."
+        assert (
+            nb_design & (nb_design - 1) == 0
+        ) and nb_design != 0, "The number of design must be a power of two."
 
         sampler = sampler if sampler is not None else TFSobolSequenceRS()
         estimator = estimator if estimator is not None else JansenEstimator()
 
-        assert isinstance(sampler, ReplicatedSampler), "The sampler must be a"\
-                                                       " valid Replicated Sampler."
-        assert isinstance(estimator, SobolEstimator), "The estimator must be a"\
-                                                      " valid Sobol estimator."
+        assert isinstance(sampler, ReplicatedSampler), (
+            "The sampler must be a" " valid Replicated Sampler."
+        )
+        assert isinstance(estimator, SobolEstimator), (
+            "The estimator must be a" " valid Sobol estimator."
+        )
 
-        super().__init__(model=model, sampler=sampler, estimator=estimator,
-                         grid_size=grid_size, nb_design=nb_design,
-                         perturbation_function=perturbation_function,
-                         batch_size=batch_size)
+        super().__init__(
+            model=model,
+            operator=operator,
+            sampler=sampler,
+            estimator=estimator,
+            grid_size=grid_size,
+            nb_design=nb_design,
+            perturbation_function=perturbation_function,
+            batch_size=batch_size,
+        )

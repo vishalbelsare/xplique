@@ -17,7 +17,7 @@ def test_output_shape():
         method = Occlusion(model)
         sensitivity = method.explain(x, y)
 
-        assert x.shape[:3] == sensitivity.shape
+        assert x.shape[:-1] == sensitivity.shape[:-1]
 
 
 def test_polymorphic_parameters():
@@ -64,7 +64,7 @@ def test_mask_generator():
             [0, 0],
             [0, 1]
         ],
-    ], dtype=np.bool))
+    ], dtype=np.float32))
 
 
 def test_apply():

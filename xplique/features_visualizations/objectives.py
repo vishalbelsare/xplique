@@ -108,8 +108,8 @@ class Objective:
         nb_sub_objectives = len(self.multipliers)
 
         # re-arrange to match the different objectives with the model outputs
-        masks = np.array([np.array(m) for m in itertools.product(*self.masks)])
-        masks = [tf.cast(tf.stack(masks[:, i]), tf.float32) for i in
+        masks = np.array([np.array(m, dtype=object) for m in itertools.product(*self.masks)])
+        masks = [tf.cast(tf.stack(list(masks[:, i])), tf.float32) for i in
                  range(nb_sub_objectives)]
 
         # the name of each combination is the concatenation of each objectives
@@ -121,16 +121,19 @@ class Objective:
         def objective_function(model_outputs):
             loss = 0.0
             for output_index in range(0, nb_sub_objectives):
-                loss += self.funcs[output_index](model_outputs[output_index],
-                                                 masks[output_index]) * \
-                                                 multipliers[output_index]
+                outputs = model_outputs[output_index]
+                loss += self.funcs[output_index](
+                    outputs, tf.cast(masks[output_index], outputs.dtype))
+                loss *= multipliers[output_index]
             return loss
 
         # the model outputs will be composed of the layers needed
-        model_reconfigured = tf.keras.Model(self.model.input, [*self.layers])
+        model_reconfigured = tf.keras.Model(self.model.inputs, [*self.layers])
 
         nb_combinations = masks[0].shape[0]
-        input_shape = (nb_combinations, *model_reconfigured.input.shape[1:])
+        model_input_shape = model_reconfigured.input[0].shape[1:] if isinstance(
+            model_reconfigured.input, list) else model_reconfigured.input.shape[1:]
+        input_shape = (nb_combinations, *model_input_shape)
 
         return model_reconfigured, objective_function, names, input_shape
 

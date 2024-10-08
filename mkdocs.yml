@@ -8,40 +8,65 @@ nav:
   - Home: index.md
   - Attributions methods:
       - API Description: api/attributions/api_attributions.md
-      - DeconvNet: api/attributions/deconvnet.md
-      - Grad-CAM: api/attributions/grad_cam.md
-      - Grad-CAM++: api/attributions/grad_cam_pp.md
-      - Gradient Input: api/attributions/gradient_input.md
-      - Guided Backprop: api/attributions/guided_backpropagation.md
-      - Integrated Gradient: api/attributions/integrated_gradients.md
-      - KernelSHAP: api/attributions/kernel_shap.md
-      - Lime: api/attributions/lime.md
-      - Occlusion sensitivity: api/attributions/occlusion.md
-      - Rise: api/attributions/rise.md
-      - Saliency: api/attributions/saliency.md
-      - SmoothGrad: api/attributions/smoothgrad.md
-      - SquareGrad: api/attributions/square_grad.md
-      - Sobol Attribution Method: api/attributions/sobol.md
-      - VarGrad: api/attributions/vargrad.md
+      - Methods: 
+        - DeconvNet: api/attributions/methods/deconvnet.md
+        - ForGRad: api/attributions/methods/forgrad.md
+        - Grad-CAM: api/attributions/methods/grad_cam.md
+        - Grad-CAM++: api/attributions/methods/grad_cam_pp.md
+        - Gradient Input: api/attributions/methods/gradient_input.md
+        - Guided Backprop: api/attributions/methods/guided_backpropagation.md
+        - Hsic Attribution Method: api/attributions/methods/hsic.md
+        - Integrated Gradient: api/attributions/methods/integrated_gradients.md
+        - KernelSHAP: api/attributions/methods/kernel_shap.md
+        - Lime: api/attributions/methods/lime.md
+        - Occlusion sensitivity: api/attributions/methods/occlusion.md
+        - Rise: api/attributions/methods/rise.md
+        - Saliency: api/attributions/methods/saliency.md
+        - SmoothGrad: api/attributions/methods/smoothgrad.md
+        - Sobol Attribution Method: api/attributions/methods/sobol.md
+        - SquareGrad: api/attributions/methods/square_grad.md
+        - VarGrad: api/attributions/methods/vargrad.md
+      - Metrics:
+        - API Description: api/attributions/metrics/api_metrics.md
+        - Deletion: api/attributions/metrics/deletion.md
+        - Insertion: api/attributions/metrics/insertion.md
+        - MuFidelity: api/attributions/metrics/mu_fidelity.md
+        - AverageStability: api/attributions/metrics/avg_stability.md
+      - PyTorch: api/attributions/pytorch.md
+      - Callable: api/attributions/callable.md
+      - Classification: api/attributions/classification.md
+      - Object Detection: api/attributions/object_detection.md
+      - Regression: api/attributions/regression.md
+      - Semantic Segmentation: api/attributions/semantic_segmentation.md
   - Concept based:
       - Cav: api/concepts/cav.md
       - Tcav: api/concepts/tcav.md
+      - Craft: api/concepts/craft.md
+  - Example based:
+      - API Description: api/example_based/api_example_based.md
+      - Similar Examples:
+        - SimilarExamples: api/example_based/similar_examples/similar_examples.md
+        - Cole: api/example_based/similar_examples/cole.md
+      - Counterfactuals:
+        - LabelAwareCounterFactuals: api/example_based/counterfactuals/label_aware_counter_factuals.md
+        - NaiveCounterFactuals: api/example_based/counterfactuals/naive_counter_factuals.md
+      - Semifactuals:
+        - Kleor: api/example_based/semifactuals/kleor.md
+      - Prototypes: 
+        - API Description: api/example_based/prototypes/api_prototypes.md
+        - ProtoGreedy: api/example_based/prototypes/proto_greedy.md 
+        - ProtoDash: api/example_based/prototypes/proto_dash.md
+        - MMDCritic: api/example_based/prototypes/mmd_critic.md
+      - Projections: api/example_based/projections.md
   - Feature visualization:
+      - Modern Feature Visualization (MaCo): api/feature_viz/maco.md
       - Feature visualization: api/feature_viz/feature_viz.md
-  - Attributions metrics:
-      - API Description: api/metrics/api_metrics.md
-      - Deletion: api/metrics/deletion.md
-      - Insertion: api/metrics/insertion.md
-      - Deletion TS: api/metrics/deletion_ts.md
-      - Insertion TS: api/metrics/insertion_ts.md
-      - MuFidelity: api/metrics/mu_fidelity.md
-      - AverageStability: api/metrics/avg_stability.md
   - Tutorials: tutorials.md
   - Contributing: contributing.md
-  - Callable: callable.md
 
 theme:
   name: "material"
+  custom_dir: docs/overrides
   logo: assets/x_logo.png
   favicon: assets/x_logo.png
   palette:
@@ -70,6 +95,7 @@ markdown_extensions:
       generic: true
   - pymdownx.highlight
   - pymdownx.superfences
+  - pymdownx.details
   - codehilite
   - toc:
       permalink: true
@@ -79,8 +105,12 @@ markdown_extensions:
       custom_checkbox: true
       clickable_checkbox: true
   - pymdownx.emoji:
-      emoji_index: !!python/name:materialx.emoji.twemoji
-      emoji_generator: !!python/name:materialx.emoji.to_svg
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+extra:
+  version:
+    provider: mike
 
 extra_css:
   - css/custom.css

@@ -4,7 +4,7 @@ Custom tensorflow operations
 
 import tensorflow as tf
 
-from ..types import Callable, Optional, Union, Tuple
+from ..types import Optional, Union, Tuple
 
 
 def repeat_labels(labels: tf.Tensor, nb_repetitions: int) -> tf.Tensor:
@@ -32,149 +32,6 @@ def repeat_labels(labels: tf.Tensor, nb_repetitions: int) -> tf.Tensor:
     return repeated_labels
 
 
-@tf.function
-def predictions_one_hot(model: Callable,
-                        inputs: tf.Tensor,
-                        targets: tf.Tensor) -> tf.Tensor:
-    """
-    Compute predictions scores, only for the label class, for a batch of samples.
-
-    Parameters
-    ----------
-    model
-        Model used for computing predictions.
-    inputs
-        Input samples to be explained.
-    targets
-        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
-
-    Returns
-    -------
-    scores
-        Predictions scores computed, only for the label class.
-    """
-    scores = tf.reduce_sum(model(inputs) * targets, axis=-1)
-    return scores
-
-@tf.function
-def gradient(model: Callable,
-             inputs: tf.Tensor,
-             targets: tf.Tensor) -> tf.Tensor:
-    """
-    Compute gradients for a batch of samples.
-
-    Parameters
-    ----------
-    model
-        Model used for computing gradient.
-    inputs
-        Input samples to be explained.
-    targets
-        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
-
-    Returns
-    -------
-    gradients
-        Gradients computed, with the same shape as the inputs.
-    """
-    with tf.GradientTape(watch_accessed_variables=False) as tape: # type: ignore
-        tape.watch(inputs)
-        score = tf.reduce_sum(tf.multiply(model(inputs), targets), axis=1)
-    return tape.gradient(score, inputs)
-
-
-def inference_batching(operation: Callable,
-                       model: Callable,
-                       inputs: tf.Tensor,
-                       targets: tf.Tensor,
-                       batch_size: Optional[int]) -> tf.Tensor:
-    """
-    Take care of batching an inference operation: (model, inputs, labels).
-
-    Parameters
-    ----------
-    operation
-        Any callable that take model, inputs and labels as parameters.
-    model
-        Callable that will be passed to the operation.
-    inputs
-        Input samples to be explained.
-    targets
-        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
-    batch_size
-        Number of samples to explain at once, if None compute all at once.
-
-    Returns
-    -------
-    results
-        Results of the batched operations.
-    """
-    if batch_size is not None:
-        dataset = tf.data.Dataset.from_tensor_slices((inputs, targets))
-        results = tf.concat([
-            operation(model, x, y)
-            for x, y in dataset.batch(batch_size)
-        ], axis=0)
-    else:
-        results = operation(model, inputs, targets)
-
-    return results
-
-
-def batch_predictions_one_hot(model: Callable,
-                              inputs: tf.Tensor,
-                              targets: tf.Tensor,
-                              batch_size: Optional[int] = None) -> tf.Tensor:
-    """
-    Compute predictions scores, only for the label class, for the samples passed. Take
-    care of splitting in multiple batches if batch_size is specified.
-
-    Parameters
-    ----------
-    model
-        Model used for computing predictions score.
-    inputs
-        Input samples to be explained.
-    targets
-        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
-    batch_size
-        Number of samples to predict at once, if None compute all at once.
-
-    Returns
-    -------
-    scores
-        Predictions scores computed, only for the label class.
-    """
-    return inference_batching(predictions_one_hot, model, inputs, targets, batch_size)
-
-
-def batch_gradient(model: Callable,
-                   inputs: tf.Tensor,
-                   targets: tf.Tensor,
-                   batch_size: Optional[int]) -> tf.Tensor:
-    """
-    Compute the gradients of the sample passed, take care of splitting the samples in
-    multiple batches if batch_size is specified.
-
-    Parameters
-    ----------
-    model
-        Model used for computing gradient.
-    inputs
-        Input samples to be explained.
-    targets
-        One-hot encoded labels or regression target (e.g {+1, -1}), one for each sample.
-    batch_size
-        Number of samples to explain at once, if None compute all at once.
-
-    Returns
-    -------
-    gradients
-        Gradients computed, with the same shape as the inputs.
-    """
-    return inference_batching(gradient, model, inputs, targets, batch_size)
-
-
 def batch_tensor(tensors: Union[Tuple, tf.Tensor],
                  batch_size: Optional[int] = None):
     """
@@ -197,3 +54,28 @@ def batch_tensor(tensors: Union[Tuple, tf.Tensor],
         dataset = dataset.batch(batch_size)
 
     return dataset
+
+
+def get_device(device: Optional[str] = None) -> str:
+    """
+    Gets the name of the device to use. If there are any available GPUs, it will use the first one
+    in the system, otherwise, it will use the CPU.
+
+    Parameters
+    ----------
+    device
+        A string specifying the device on which to run the computations. If None, it will search
+        for available GPUs, and if none are found, it will return the first CPU.
+
+    Returns
+    -------
+    device
+        A string with the name of the device on which to run the computations.
+    """
+    if device is not None:
+        return device
+
+    physical_devices = tf.config.list_physical_devices('GPU')
+    if physical_devices is None or len(physical_devices) == 0:
+        return 'cpu:0'
+    return 'GPU:0'

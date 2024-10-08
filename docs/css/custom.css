@@ -41,7 +41,6 @@ html {
 }
 
 li {
-    list-style: none;
     margin-bottom: 0 !important;
 }
 
@@ -63,6 +62,14 @@ h4 code {
     border-radius: 2px !important;
     cursor: pointer !important;
     font-size: 95% !important;
+}
+
+p {
+    text-align: justify
+}
+
+.central {
+    text-align: center
 }
 
 [data-md-color-scheme="slate"] h4 code {
@@ -111,7 +118,8 @@ table {
 }
 
 [data-md-color-scheme="slate"] .md-typeset table:not([class]) th {
-    color: white !important;
+    color: var(--dark);
+    background-color: white;
 }
 
 .md-typeset__table {
@@ -137,6 +145,10 @@ span.parameter-name {
 
 li .parameter-type {
     font-weight: bold;
+}
+
+span.parameter-type {
+    font-size: 85%;
 }
 
 [data-md-color-scheme="slate"] .parameter-type {

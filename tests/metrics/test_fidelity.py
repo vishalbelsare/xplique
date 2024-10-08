@@ -1,16 +1,18 @@
 import tensorflow as tf
 import numpy as np
 
-from ..utils import generate_model, generate_timeseries_model, generate_regression_model, generate_data, almost_equal
-from xplique.metrics import Insertion, Deletion, MuFidelity, InsertionTS, DeletionTS, InsertionTab, DeletionTab
+from tests.utils import (generate_model, generate_regression_model, generate_timeseries_model, 
+                     generate_data, almost_equal)
+from xplique.commons import Tasks
+from xplique.metrics import Insertion, Deletion, MuFidelity
 
 
 def test_mu_fidelity():
-    # ensure we can compute the metric with consistents arguments
+    # ensure we can compute the metric with consistent arguments
     input_shape, nb_labels, nb_samples = ((32, 32, 3), 10, 20)
     x, y = generate_data(input_shape, nb_labels, nb_samples)
     model = generate_model(input_shape, nb_labels)
-    explanations = np.random.uniform(0, 1, x.shape[:-1])
+    explanations = np.random.uniform(0, 1, x.shape[:-1] + (1,)).astype(np.float32)
 
     nb_estimation = 10 # number of samples to test correlation for each samples
 
@@ -26,12 +28,12 @@ def test_mu_fidelity():
 
 def test_causal_metrics():
     # ensure we can compute insertion/deletion metric with consistent arguments
-    input_shape, nb_labels, nb_samples = ((32, 32, 3), 10, 20)
+    input_shape, nb_labels, nb_samples = ((10, 10, 3), 10, 20)
     x, y = generate_data(input_shape, nb_labels, nb_samples)
     model = generate_model(input_shape, nb_labels)
-    explanations = np.random.uniform(0, 1, x.shape[:-1])
+    explanations = np.random.uniform(0, 1, x.shape[:-1] + (1,)).astype(np.float32)
 
-    for step in [5, 10]:
+    for step in [-1, 5, 10]:
         for baseline_mode in [0.0, lambda x: x-0.5]:
             score_insertion = Insertion(model, x, y,
                                         baseline_mode=baseline_mode,
@@ -42,66 +44,6 @@ def test_causal_metrics():
 
             for score in [score_insertion, score_deletion]:
                 assert 0.0 <= score <= 1.0
-
-
-def test_perturbation_metrics():
-    # ensure we can compute insertion/deletion metric with consistent arguments
-    input_shape, nb_labels, nb_samples = ((20, 10), 5, 50)
-    x, y = generate_data(input_shape, nb_labels, nb_samples)
-    model = generate_timeseries_model(input_shape, nb_labels)
-    explanations = np.random.uniform(0, 1, x.shape)
-
-    def inverse(x):
-        maximums = x.max(axis=1)
-        maximums = np.expand_dims(maximums, axis=1)
-        maximums = np.repeat(maximums, x.shape[1], axis=1)
-        baselines = maximums - x
-        return baselines
-
-    for step in [-1, 10]:
-        for baseline_mode in [0.0, inverse]:
-            for metric in ["loss", "accuracy"]:
-                score_insertion = InsertionTS(
-                    model, x, y, metric=metric, baseline_mode=baseline_mode,
-                    steps=step, max_percentage_perturbed=0.2,
-                ).evaluate(explanations)
-                score_deletion = DeletionTS(
-                    model, x, y, metric=metric, baseline_mode=baseline_mode,
-                    steps=step, max_percentage_perturbed=0.2,
-                ).evaluate(explanations)
-
-                for score in [score_insertion, score_deletion]:
-                    if metric == "loss":
-                        assert 0.0 < score
-                    elif metric == "accuracy":
-                        assert 0.0 <= score <= 1.0
-
-
-def test_regression_metrics():
-    # ensure we can compute insertion/deletion metric with consistent arguments
-    input_shape, nb_labels, nb_samples = ((20, 10), 5, 50)
-    x, y = generate_data(input_shape, nb_labels, nb_samples)
-    model = generate_regression_model(input_shape, nb_labels)
-    explanations = np.random.uniform(0, 1, x.shape)
-
-    for step in [5, 10]:
-        for baseline_mode in [0.0, lambda x: x-0.5]:
-            for metric in ["loss", "accuracy"]:
-                score_insertion = InsertionTab(
-                    model, x, y, metric=metric, baseline_mode=baseline_mode,
-                    steps=step, max_percentage_perturbed=0.2,
-                ).evaluate(explanations)
-                score_deletion = DeletionTab(
-                    model, x, y, metric=metric, baseline_mode=baseline_mode,
-                    steps=step, max_percentage_perturbed=0.2,
-                ).evaluate(explanations)
-
-                for score in [score_insertion, score_deletion]:
-                    if metric == "loss":
-                        assert 0.0 < score
-
-                    elif metric == "accuracy":
-                        assert 0.0 <= score <= 1.0
 
 
 def test_perfect_correlation():
@@ -115,7 +57,7 @@ def test_perfect_correlation():
     x, y = generate_data(input_shape, nb_labels, nb_samples)
     model = lambda x: tf.repeat(tf.reduce_sum(x, axis=(1, 2, 3))[:, None], nb_classes, -1)
     explanations = x
-
+    
     perfect_score = MuFidelity(model, x, y, grid_size=None,
                                subset_percent=0.1,
                                baseline_mode=0.0,
@@ -174,3 +116,24 @@ def test_perfect_insertion():
 
     perfect_score = Insertion(model, x, y, steps=steps)(explanations)
     assert almost_equal(perfect_score, 1.0, 1e-2)
+
+
+def test_MuFidelity_batch_size():
+    """Ensure we get perfect score if the correlation is perfect"""
+    # we ensure perfect correlation if the model return the sum of the input,
+    # and the input is the explanations: corr( sum(phi), sum(x) - sum(x-phi) )
+    # to do so we define f(x) -> sum(x) and phi = x
+    for batch_size in [1, 4, 9, None]:
+        input_shape, nb_labels, nb_samples = ((5, 5, 1), 2, 3)
+        x = tf.reshape(tf.range(nb_samples * np.prod(input_shape), dtype=tf.float32),
+                       (nb_samples, *input_shape))
+        y = tf.concat([tf.zeros((nb_samples, nb_labels - 1)), tf.ones((nb_samples, 1))], axis=1)
+        model = lambda x: tf.repeat(tf.reduce_sum(x, axis=(1, 2, 3))[:, None], nb_labels, -1)
+        explanations = x
+
+        perfect_score = MuFidelity(model, x, y, grid_size=None,
+                                subset_percent=0.2,
+                                baseline_mode=0.0,
+                                batch_size=batch_size,
+                                nb_samples=7)(explanations)
+        assert almost_equal(perfect_score, 1.0)

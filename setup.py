@@ -5,18 +5,19 @@ with open("README.md", encoding="utf-8") as fh:
 
 setup(
     name="Xplique",
-    version="0.4.2",
+    version="1.4.0",
     description="Explanations toolbox for Tensorflow 2",
     long_description=README,
     long_description_content_type="text/markdown",
     author="Thomas FEL",
     author_email="thomas_fel@brown.edu",
     license="MIT",
-    install_requires=['tensorflow>=2.1.0', 'numpy', 'scikit-learn', 'scikit-image',
-                      'matplotlib', 'scipy', 'opencv-python'],
+    install_requires=['numpy<2.0.0', 'tensorflow>=2.1.0,<2.16.0', 'scikit-learn', 'scikit-image',
+                      'matplotlib', 'scipy', 'opencv-python', 'deprecated'],
     extras_require={
         "tests": ["pytest", "pylint"],
         "docs": ["mkdocs", "mkdocs-material", "numkdoc"],
+        "pytorch": ["torch"]
     },
     packages=find_packages(),
     python_requires=">=3.6",
